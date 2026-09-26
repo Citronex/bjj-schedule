@@ -226,8 +226,9 @@
         const type=classType(s.kind,key); const name=s.kind.startsWith('rot-')?`Fundamentals · ${rotation[key][s.kind.slice(4)]}`:s.name;
         const card=document.createElement('div'); card.className=`class ${type}`;
         const academy=s.loc==='snake'?'Snake Hill · Marlboro':`Evolution · ${s.site}`;
+        const academyLabel=s.loc==='snake'?academy:`Evolution · <strong>${s.site}</strong>`;
         const logoClass=s.loc==='snake'?'academy-logo snake':'academy-logo';
-        card.innerHTML=`<div class="time">${s.start}–${s.end}</div><div class="name">${name}</div><div class="meta academy"><img class="${logoClass}" src="${logos[s.loc==='snake'?'snake':'beacon']}" alt="${academy} logo"><span>${academy}${s.kind.startsWith('rot-')?' · rotating':''}</span></div>`;
+        card.innerHTML=`<div class="time">${s.start}–${s.end}</div><div class="name">${name}</div><div class="meta academy"><img class="${logoClass}" src="${logos[s.loc==='snake'?'snake':'beacon']}" alt="${academy} logo"><span>${academyLabel}${s.kind.startsWith('rot-')?' · rotating':''}</span></div>`;
         list.appendChild(card);
       });
       dayEl.appendChild(list); target.appendChild(dayEl);
