@@ -4,7 +4,7 @@ A single-file, static schedule app for Evolution Grappling Academy (Beacon and F
 
 ## Contents
 - `index.html` — complete GitHub Pages-ready app; logos are embedded, so there are no external assets or build dependencies.
-- `CODEX_PROMPT.md` — handoff instructions for adding it to your existing Codex/GitHub project.
+- `monitor/` — monthly schedule-image baselines, sources, and review instructions.
 
 ## Current features
 - Day and Week views with previous/next navigation and a Today button.
@@ -15,3 +15,7 @@ A single-file, static schedule app for Evolution Grappling Academy (Beacon and F
 - Academy logos on class cards and beside the page title.
 
 The schedule currently lists adult classes and open mats. Kids classes are excluded.
+
+## Schedule monitoring
+
+The **Check schedule images** GitHub Action runs monthly and can also be run manually. Changed images or fetch errors open a review issue with comparison evidence. Calendar changes require review; only class information is in scope. See [monitor instructions](monitor/README.md) for details, URL replacement limitations, and accepting a new baseline.
