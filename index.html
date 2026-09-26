@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#10131f">
   <title>BJJ Schedule</title>
   <style>
@@ -52,6 +52,34 @@
     @media(max-width:1100px){ .grid{grid-template-columns:repeat(4,minmax(175px,1fr))} }
     @media(max-width:760px){ main{padding:28px 16px 45px}.top{display:block}.week-box{margin-top:18px;width:max-content;max-width:100%}.grid{grid-template-columns:repeat(2,minmax(155px,1fr))} }
     @media(max-width:420px){ .grid{grid-template-columns:1fr 1fr;gap:7px}.day{min-height:160px}.day-head{padding:10px 8px}.cards{padding:6px}.class{padding:8px}.week-label{min-width:150px} }
+    html { -webkit-text-size-adjust:100%; text-size-adjust:100% }
+    button { min-height:44px; min-width:44px; touch-action:manipulation }
+    button:focus-visible { outline:2px solid var(--accent); outline-offset:3px }
+    .calendar-tools { display:grid; gap:10px; flex-shrink:0 }
+    .view-controls { display:flex; justify-content:space-between; gap:12px }
+    .view-switch { display:flex; gap:4px; padding:3px; border:1px solid var(--line); border-radius:13px }
+    .view-switch button { border-color:transparent; background:transparent; color:var(--muted) }
+    .view-switch button[aria-pressed="true"] { background:var(--panel2); color:var(--ink); border-color:#8490ad }
+    .grid.day-view { grid-template-columns:minmax(0,1fr); max-width:760px; margin-inline:auto; overflow:visible }
+    .day-view .day-head { padding:16px }
+    .day-view .day-head strong { font-size:18px }
+    .day-view .day-head span { font-size:14px }
+    .day-view .cards { padding:12px; gap:12px }
+    .day-view .class { padding:14px }
+    .day-view .time { font-size:14px }
+    .day-view .name { font-size:17px }
+    .day-view .meta { font-size:13px; margin-top:9px }
+    .day-view .empty { padding:32px 12px; font-size:15px }
+    @media(max-width:760px){
+      main { padding-left:max(16px,env(safe-area-inset-left)); padding-right:max(16px,env(safe-area-inset-right)); padding-bottom:max(45px,env(safe-area-inset-bottom)) }
+      .calendar-tools { margin-top:20px; width:100%; min-width:0 }
+      .week-box { margin:0; width:100%; white-space:normal }
+      .week-label { min-width:0; flex:1 }
+      .title-row { gap:10px; flex-wrap:wrap }
+      .brand-logos { flex-shrink:0 }
+      .filter-label { width:100% }
+      .grid { grid-template-columns:repeat(2,minmax(0,1fr)) }
+    }
   </style>
 </head>
 <body>
@@ -65,12 +93,21 @@
           <img id="snakeHeaderLogo" class="brand-logo snake" alt="Snake Hill MMA logo">
         </div>
       </div>
-      <p class="sub">Adult classes and open mats in one weekly view. Switch weeks also changes the rotating Gi and No-Gi fundamentals morning class.</p>
+      <p class="sub">Adult classes and open mats, by day or week. Gi and No-Gi fundamentals rotate automatically with the date.</p>
     </div>
-    <div class="week-box" aria-label="Choose week">
+    <div class="calendar-tools">
+      <div class="view-controls">
+        <div class="view-switch" role="group" aria-label="Calendar view">
+          <button data-view="day" aria-pressed="false">Day</button>
+          <button data-view="week" aria-pressed="true">Week</button>
+        </div>
+        <button id="today">Today</button>
+      </div>
+      <div class="week-box" role="group" aria-label="Navigate calendar">
       <button id="prev" aria-label="Previous week">←</button>
-      <div class="week-label" id="weekLabel"></div>
+      <div class="week-label" id="weekLabel" aria-live="polite" aria-atomic="true"></div>
       <button id="next" aria-label="Next week">→</button>
+      </div>
     </div>
   </header>
 
@@ -150,21 +187,31 @@
     {day:4,start:'7:30 PM',end:'8:30 PM',name:'Adult Muay Thai',kind:'other',loc:'snake',site:'Marlboro'},
     {day:5,start:'10:30 AM',end:'11:30 AM',name:'Adult No-Gi',kind:'nogi',loc:'snake',site:'Marlboro'}
   ];
-  let monday = startOfWeek(new Date());
+  let selectedDate = new Date();
+  let view = window.matchMedia('(max-width:760px)').matches ? 'day' : 'week';
   let locationFilter = 'all';
   let typeFilter = 'all';
   const fmt = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric'});
   function startOfWeek(date){ const d=new Date(date.getFullYear(),date.getMonth(),date.getDate()); const offset=(d.getDay()+6)%7; d.setDate(d.getDate()-offset); return d; }
-  function dateOffsetWeeks(date){ return Math.floor((startOfWeek(date)-anchorMonday)/(7*86400000)); }
+  function dateOffsetWeeks(date){ const week=startOfWeek(date); return Math.round((Date.UTC(week.getFullYear(),week.getMonth(),week.getDate())-Date.UTC(anchorMonday.getFullYear(),anchorMonday.getMonth(),anchorMonday.getDate()))/(7*86400000)); }
   function rotationKey(date){ return ((dateOffsetWeeks(date)%2)+2)%2===0?'B':'A'; }
   function shiftDate(date,days){const d=new Date(date);d.setDate(d.getDate()+days);return d;}
   function classType(kind,key){ if(!kind.startsWith('rot-')) return kind; const day=kind.slice(4); return rotation[key][day].toLowerCase()==='gi'?'gi':'nogi'; }
   function render(){
-    const key=rotationKey(monday), weekEnd=shiftDate(monday,6), pattern=rotation[key];
-    document.getElementById('weekLabel').innerHTML=`${fmt.format(monday)} – ${fmt.format(weekEnd)}<span class="week-type">Rotation ${key}</span>`;
-    const today=startOfWeek(new Date());
+    const monday=startOfWeek(selectedDate), key=rotationKey(selectedDate), weekEnd=shiftDate(monday,6);
+    const label=view==='day'
+      ? selectedDate.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})
+      : `${fmt.format(monday)} – ${fmt.format(weekEnd)}, ${weekEnd.getFullYear()}`;
+    document.getElementById('weekLabel').innerHTML=`${label}<span class="week-type">Rotation ${key}</span>`;
+    document.getElementById('prev').setAttribute('aria-label',`Previous ${view}`);
+    document.getElementById('next').setAttribute('aria-label',`Next ${view}`);
+    document.querySelectorAll('[data-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.view===view)));
+    document.querySelectorAll('.filter').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.value===(button.dataset.group==='location'?locationFilter:typeFilter))));
     const target=document.getElementById('schedule'); target.innerHTML='';
+    target.className='grid'+(view==='day'?' day-view':'');
+    target.setAttribute('aria-label',`${view==='day'?'Daily':'Weekly'} class schedule`);
     days.forEach((day,index)=>{
+      if(view==='day'&&index!==(selectedDate.getDay()+6)%7) return;
       const date=shiftDate(monday,index); const dayEl=document.createElement('article');
       dayEl.className='day'+(date.toDateString()===new Date().toDateString()?' today':'');
       const items=sessions.filter(s=>{
@@ -187,8 +234,10 @@
     });
   }
   function toMinutes(t){const [clock,period]=t.split(' ');let [h,m]=clock.split(':').map(Number); if(period==='PM'&&h!==12)h+=12;if(period==='AM'&&h===12)h=0;return h*60+m;}
-  document.getElementById('prev').addEventListener('click',()=>{monday=shiftDate(monday,-7);render()});
-  document.getElementById('next').addEventListener('click',()=>{monday=shiftDate(monday,7);render()});
+  document.getElementById('prev').addEventListener('click',()=>{selectedDate=shiftDate(selectedDate,view==='day'?-1:-7);render()});
+  document.getElementById('next').addEventListener('click',()=>{selectedDate=shiftDate(selectedDate,view==='day'?1:7);render()});
+  document.getElementById('today').addEventListener('click',()=>{selectedDate=new Date();render()});
+  document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{view=button.dataset.view;render() }));
   document.querySelectorAll('.filter').forEach(button=>button.addEventListener('click',()=>{
     const group=button.dataset.group;
     document.querySelectorAll(`.filter[data-group="${group}"]`).forEach(b=>b.classList.remove('active'));
