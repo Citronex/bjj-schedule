@@ -62,9 +62,16 @@
     @media(max-width:420px){ .grid{grid-template-columns:1fr 1fr;gap:7px}.day{min-height:160px}.day-head{padding:10px 8px}.cards{padding:6px}.class{padding:8px}.week-label{min-width:150px} }
     html { -webkit-text-size-adjust:100%; text-size-adjust:100% }
     button { min-height:44px; min-width:44px; touch-action:manipulation }
-    button:focus-visible { outline:2px solid var(--accent); outline-offset:3px }
+    button:focus-visible, .jitsuka-link:focus-visible { outline:2px solid var(--accent); outline-offset:3px }
     .calendar-tools { display:grid; gap:10px; flex-shrink:0 }
-    .view-controls { display:flex; justify-content:space-between; gap:12px }
+    .view-controls { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap }
+    .jitsuka-link { display:flex; align-items:center; justify-content:center; gap:7px; min-height:44px; padding:6px 9px; border:1px solid #62775b; border-radius:11px; color:#e8efdf; background:#293b28; text-decoration:none; touch-action:manipulation }
+    .jitsuka-link:hover { background:#354c33; border-color:#a3b695 }
+    .jitsuka-mark { font-size:26px; font-weight:800; line-height:1; letter-spacing:-.06em }
+    .jitsuka-name { font-size:17px; font-weight:800; letter-spacing:-.04em }
+    .jitsuka-tagline { display:block; font-size:8px; letter-spacing:.14em; text-transform:uppercase; color:#c3cfb9 }
+    @media(max-width:420px){ .view-controls{gap:6px}.jitsuka-link{gap:5px;padding:6px}.jitsuka-tagline{display:none} }
+    @media(max-width:360px){ .view-switch button{padding-inline:9px}.jitsuka-mark{display:none} }
     .view-switch { display:flex; gap:4px; padding:3px; border:1px solid var(--line); border-radius:13px }
     .view-switch button { border-color:transparent; background:transparent; color:var(--muted) }
     .view-switch button[aria-pressed="true"] { background:var(--panel2); color:var(--ink); border-color:#8490ad }
@@ -109,6 +116,10 @@
           <button data-view="day" aria-pressed="false">Day</button>
           <button data-view="week" aria-pressed="true">Week</button>
         </div>
+        <a class="jitsuka-link" href="https://citronex.github.io/jitsuka/" target="_blank" rel="noopener noreferrer" aria-label="Jitsuka — Build your game (opens in a new tab)">
+          <span class="jitsuka-mark" aria-hidden="true">j.</span>
+          <span><span class="jitsuka-name">jitsuka ↗</span><span class="jitsuka-tagline">Build your game</span></span>
+        </a>
         <button id="today">Today</button>
       </div>
       <div class="week-box" role="group" aria-label="Navigate calendar">
