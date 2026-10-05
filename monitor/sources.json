@@ -3,7 +3,8 @@
     "id": "snake-hill",
     "name": "Snake Hill MMA",
     "url": "https://snakehillmma.com/wp-content/uploads/2026/07/snake-hill-schedule.png",
-    "page": "https://snakehillmma.com/schedule/"
+    "page": "https://snakehillmma.com/schedule/",
+    "image_path_pattern": "/[^/]*schedule[^/]*\\.(?:png|jpe?g|webp)$"
   },
   {
     "id": "evolution-beacon",

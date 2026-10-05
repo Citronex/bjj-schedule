@@ -4,6 +4,9 @@ import hashlib
 import io
 import json
 import shutil
+import re
+from html.parser import HTMLParser
+from urllib.parse import urljoin, urlparse
 import time
 import urllib.request
 from pathlib import Path
@@ -27,6 +30,36 @@ def fetch(url):
             if attempt == 2:
                 raise
             time.sleep(2 ** attempt)
+
+
+class ScheduleImages(HTMLParser):
+    def __init__(self, page, pattern):
+        super().__init__()
+        self.page = page
+        self.pattern = re.compile(pattern, re.I)
+        self.urls = set()
+
+    def handle_starttag(self, tag, attrs):
+        if tag != 'img':
+            return
+        attrs = dict(attrs)
+        src = attrs.get('data-src') or attrs.get('src', '')
+        url = urljoin(self.page, src)
+        if self.pattern.search(urlparse(url).path):
+            # Use the img source (full size on this WordPress page), not thumbnails.
+            if urlparse(url).scheme != 'https' or urlparse(url).hostname != urlparse(self.page).hostname:
+                raise ValueError('Unexpected schedule image host; review source configuration')
+            self.urls.add(url)
+
+
+def resolve_url(source, fetcher):
+    if not source.get('page'):
+        return source['url']
+    parser = ScheduleImages(source['page'], source['image_path_pattern'])
+    parser.feed(fetcher(source['page']).decode('utf-8'))
+    if len(parser.urls) != 1:
+        raise ValueError(f'Expected one schedule image on page, found {len(parser.urls)}; no fallback to old URL')
+    return next(iter(parser.urls))
 
 
 def decode(data):
@@ -56,7 +89,9 @@ def check(sources, baselines, output, fetcher=fetch):
         try:
             baseline = baselines / (source['id'] + '.png')
             before = decode(baseline.read_bytes())
-            data = fetcher(source['url'])
+            url = resolve_url(source, fetcher)
+            result.update(url=url, page=source.get('page'))
+            data = fetcher(url)
             after = decode(data)
             folder = output / source['id']
             folder.mkdir(exist_ok=True)

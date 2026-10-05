@@ -51,13 +51,13 @@ jobs:
             const report = fs.existsSync('monitor-output/report.json')
               ? JSON.parse(fs.readFileSync('monitor-output/report.json', 'utf8'))
               : {needs_review: true, results: [{name: 'Monitor', status: 'error', error: 'No report produced; inspect the workflow logs.'}]};
-            const lines = report.results.map(r => `- **${r.name}**: ${r.status}${r.error ? ` — ${r.error}` : ''}`);
+            const lines = report.results.map(r => `- **${r.name}**: ${r.status}${r.url ? ` ([checked image](${r.url}))` : ''}${r.error ? ` — ${r.error}` : ''}`);
             await core.summary.addHeading('Schedule image check').addRaw(lines.join('\n')).write();
             if (!report.needs_review) return;
             const body = [marker, 'Schedule images need review', '', ...lines, '',
               `[Workflow run](${run})`, `[Download before/after/diff evidence](${process.env.ARTIFACT_URL || run})`, '',
               'Review adult class information only: days, start/end times, class names, Gi/No-Gi, additions and cancellations. Locations are fixed and are not part of the comparison. Kids classes remain excluded.', '',
-              'A changed picture is not proof of changed classes. Read the images, propose any calendar edits for review, and update the accepted baseline in the same reviewed commit. Do not change the calendar automatically. For a cosmetic-only change, update only the baseline. For a download error, repair the source and rerun; do not accept it as unchanged.', '',
+              'A mismatch means the website differs from the accepted schedule; the website may be older. Never replace a newer user-confirmed schedule with stale website information. A changed picture is not proof of changed classes. Read the images, propose any calendar edits for review, and update the accepted baseline in the same reviewed commit. Do not change the calendar automatically. For a cosmetic-only change, update only the baseline. For a download error, repair the source and rerun; do not accept it as unchanged.', '',
               'See monitor/README.md for baseline acceptance instructions. Evidence expires after 90 days; rerun if needed.'
             ].join('\n');
             const issues = await github.paginate(github.rest.issues.listForRepo, {...context.repo, state: 'open', creator: 'github-actions[bot]', per_page: 100});

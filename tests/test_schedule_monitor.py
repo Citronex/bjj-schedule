@@ -17,6 +17,30 @@ def png(image, info=None):
 
 
 class ScheduleMonitorTests(unittest.TestCase):
+    def test_replacement_image_url_is_discovered_and_compared(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            old = png(Image.new('RGB', (100, 100), 'white'))
+            new = png(Image.new('RGB', (100, 100), 'black'))
+            (root / 'snake.png').write_bytes(old)
+            source = {'id': 'snake', 'name': 'Snake', 'url': 'https://example.com/old.png',
+                      'page': 'https://example.com/schedule/', 'image_path_pattern': r'/[^/]*schedule[^/]*\.png$'}
+            fetched = []
+            def fetch(url):
+                fetched.append(url)
+                return b'<img src="/uploads/new-schedule.png"><img src="/logo.png">' if url == source['page'] else new
+            report = monitor.check([source], root, root / 'out', fetch)
+            self.assertEqual(report['results'][0]['status'], 'changed')
+            self.assertIn('https://example.com/uploads/new-schedule.png', fetched)
+            self.assertNotIn(source['url'], fetched)
+
+    def test_missing_or_ambiguous_page_never_falls_back(self):
+        source = {'page': 'https://example.com/schedule/', 'url': 'https://example.com/old.png',
+                  'image_path_pattern': r'schedule.*\.png$'}
+        for html in [b'<img src="/logo.png">', b'<img src="/schedule-a.png"><img src="/schedule-b.png">']:
+            with self.assertRaises(ValueError):
+                monitor.resolve_url(source, lambda url: html)
+
     def test_metadata_does_not_trigger_change(self):
         image = Image.new('RGB', (100, 100), 'white')
         info = PngImagePlugin.PngInfo()
